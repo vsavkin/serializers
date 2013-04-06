@@ -1,0 +1,4 @@
+name: Serializers
+dependencies:
+  unittest: any
+  dartmocks: any
