@@ -2,7 +2,7 @@
 
 [![Build Status](https://drone.io/github.com/vsavkin/serializers/status.png)](https://drone.io/github.com/vsavkin/serializers/latest)
 
-Serializers is a Dart library for serializing objects into maps.
+Serializers is a Dart library for serializing objects into maps/json.
 
 
 ## INSTALLATION
@@ -17,7 +17,7 @@ And `run pub install`.
 
 ## HOW TO USE
 
-Suppose, we have the following model.
+Suppose we have the following model:
 
     class Person {
       String firstName;
@@ -28,7 +28,7 @@ Suppose, we have the following model.
       get fullName => "$firstName $lastName";
     }
 
-You can define a serializer for this model as follows:
+We can define a serializer for this model as follows:
 
     class PersonSerializer extends Serializer<Person>{}
 
@@ -55,17 +55,17 @@ The `serialize` function returns the data.
 
 ### Object and Map
 
-`object: true` tells serializers to use reflection mirrors. If the given model implements the `[]` operator, you can use map instead.
+`object: true` tells the serializer to use reflection mirrors. If the model implements the `[]` operator, you can use `map:true` instead.
 
     Future<Map> data = new PersonSerializer().serializeAsync(person, map: true);
     Map data = new PersonSerializer().serialize(person, map: true);
 
-In this case, reflection mirrors won't be used.
+In this case reflection mirrors won't be used.
 
 
 ### Configuration
 
-A serializer can be configured using the following properties: fields, root, custom, postProcessing.
+A serializer can be configured using the following properties: `fields`, `root`, `custom`, `postProcessing`.
 
     class PersonSerializer extends Serializer<Person>{
       get fields => ["firstName"];
