@@ -1,6 +1,9 @@
 # Serializers
 
+[![Build Status](https://drone.io/github.com/vsavkin/serializers/status.png)](https://drone.io/github.com/vsavkin/serializers/latest)
+
 Serializers is a Dart library for serializing objects into maps.
+
 
 ## INSTALLATION
 
