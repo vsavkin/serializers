@@ -58,39 +58,39 @@ testSerializer(){
         });
 
         test("serializes all the fields of the object", (){
-          var json = new DefaultSerializer().serialize(person, object: true);
+          var data = new DefaultSerializer().serialize(person, object: true);
           var expected = {"firstName" : "Bill", "lastName" : "Evans", "fullName" : "Bill Evans"};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         test("serializes selected fields of the object", (){
-          var json = new SelectedFieldsSerializer(["firstName"]).serialize(person, object: true);
+          var data = new SelectedFieldsSerializer(["firstName"]).serialize(person, object: true);
           var expected = {"firstName" : "Bill"};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         test("serializes computed fields of the object", (){
-          var json = new SelectedFieldsSerializer(["fullName"]).serialize(person, object: true);
+          var data = new SelectedFieldsSerializer(["fullName"]).serialize(person, object: true);
           var expected = {"fullName" : "Bill Evans"};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         test("serializes custom fields", (){
-          var json = new CustomFieldsSerializer().serialize(person, object: true);
+          var data = new CustomFieldsSerializer().serialize(person, object: true);
           var expected = {"transformed" : "TRANSFORMED Bill"};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         test("wraps the result into the root tag", (){
-          var json = new SerializerWithRoot().serialize(person, object: true);
+          var data = new SerializerWithRoot().serialize(person, object: true);
           var expected = {"person" : {"firstName" : "Bill"}};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         test("runs post processing hook", (){
-          var json = new SerializerWithPostProcessing().serialize(person, object: true);
+          var data = new SerializerWithPostProcessing().serialize(person, object: true);
           var expected = {"postProcessing" : true};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         });
 
         group("[subclass]", (){
@@ -101,14 +101,14 @@ testSerializer(){
           });
 
           test("does not serialize the fields of the superclass by default", (){
-            var json = new DefaultSerializer().serialize(person, object: true);
-            expect(json, equals({}));
+            var data = new DefaultSerializer().serialize(person, object: true);
+            expect(data, equals({}));
           });
 
           test("serialize specified properties of the superclass", (){
-            var json = new SelectedFieldsSerializer(["firstName"]).serialize(person, object: true);
+            var data = new SelectedFieldsSerializer(["firstName"]).serialize(person, object: true);
             var expected = {"firstName" : "Bill"};
-            expect(json, equals(expected));
+            expect(data, equals(expected));
           });
         });
       });
@@ -122,17 +122,17 @@ testSerializer(){
 
         test("serializes selected fields of the object", (){
           var future = new SelectedFieldsSerializer(["firstName", "lastName"]).serializeAsync(person, object: true);
-          future.then(expectAsync1((json){
+          future.then(expectAsync1((data){
             var expected = {"firstName" : "Bill", "lastName" : "Evans"};
-            expect(json, equals(expected));
+            expect(data, equals(expected));
           }));
         });
 
         test("serializes custom fields", (){
           var future = new CustomFieldsSerializer().serializeAsync(person, object: true);
-          future.then(expectAsync1((json){
+          future.then(expectAsync1((data){
             var expected = {"transformed" : "TRANSFORMED Bill"};
-            expect(json, equals(expected));
+            expect(data, equals(expected));
           }));
         });
 
@@ -143,9 +143,9 @@ testSerializer(){
 
         test("runs post processing hook", (){
           var future = new SerializerWithPostProcessing().serializeAsync(person, object: true);
-          future.then(expectAsync1((json){
+          future.then(expectAsync1((data){
             var expected = {"postProcessing" : true};
-            expect(json, equals(expected));
+            expect(data, equals(expected));
           }));
         });
       });
@@ -159,22 +159,22 @@ testSerializer(){
       });
 
       test("serializes selected fields of the object", (){
-        var json = new SelectedFieldsSerializer(["firstName"]).serialize(person, map: true);
+        var data = new SelectedFieldsSerializer(["firstName"]).serialize(person, map: true);
         var expected = {"firstName" : "Bill"};
-        expect(json, equals(expected));
+        expect(data, equals(expected));
       });
 
       test("defauls missing fields to null", (){
-        var json = new SelectedFieldsSerializer(["invalid"]).serialize(person, map: true);
+        var data = new SelectedFieldsSerializer(["invalid"]).serialize(person, map: true);
         var expected = {"invalid" : null};
-        expect(json, equals(expected));
+        expect(data, equals(expected));
       });
 
       test("works in async mode", (){
         var future = new SelectedFieldsSerializer(["firstName"]).serializeAsync(person, map: true);
-        future.then(expectAsync1((json){
+        future.then(expectAsync1((data){
           var expected = {"firstName" : "Bill"};
-          expect(json, equals(expected));
+          expect(data, equals(expected));
         }));
       });
     });
