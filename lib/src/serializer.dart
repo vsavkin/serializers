@@ -1,9 +1,15 @@
 part of serializers;
 
 abstract class Serializer<T> {
-  get fields => [];
+  List<String> get fields => [];
 
-  get custom => {};
+  String get root => null;
+
+  Map get custom => {};
+
+  Map postProcessing(Map serialized, T model){
+    return serialized;
+  }
 
   Map serialize(T m, {bool object, bool map}){
     if(object == true){
@@ -43,8 +49,18 @@ abstract class _BaseSerializer {
   serializerOverrides(field) =>
     serializer.custom.containsKey(field);
 
-  serialize() =>
-    fields.reduce({}, (Map res, String field) {
+  postProcessing(Map res){
+    var withRoot = {};
+    if(serializer.root != null){
+      withRoot[serializer.root] = res;
+    } else {
+      withRoot = res;
+    }
+    return serializer.postProcessing(withRoot, model);
+  }
+
+  serialize(){
+    var res = fields.reduce({}, (Map res, String field) {
       if(serializerOverrides(field)){
         res[field] = readFromSerializer(field);
       } else {
@@ -52,6 +68,8 @@ abstract class _BaseSerializer {
       }
       return res;
     });
+    return postProcessing(res);
+  }
 
   List get fields {
     if(serializer.fields.isEmpty && serializer.custom.isEmpty){
@@ -81,12 +99,13 @@ class _AsyncSerializer extends _BaseSerializer {
   _AsyncSerializer(model, serializer) : super(model, serializer);
 
   serialize() =>
-    Future.wait(pairs()).then((pairs) =>
-      pairs.reduce({}, (res, p){
+    Future.wait(pairs()).then((pairs){
+      var res = pairs.reduce({}, (res, p){
         res[p[0]] = p[1];
         return res;
-      })
-    );
+      });
+      return postProcessing(res);
+    });
 
   pairs() =>
     fields.map((field) => serializerOverrides(field) ? readFromSerializer(field) : readFromModel(field));

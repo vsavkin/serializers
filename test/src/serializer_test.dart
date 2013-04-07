@@ -26,6 +26,15 @@ class SubPerson extends Person {
 class DefaultSerializer extends Serializer<Person>{
 }
 
+class SerializerWithRoot extends Serializer<Person>{
+  get fields => ["firstName"];
+  get root => "person";
+}
+
+class SerializerWithPostProcessing extends Serializer<Person>{
+
+  postProcessing(map, model) => {"postProcessing" : true};
+}
 
 class SelectedFieldsSerializer extends Serializer<Person>{
   var fields;
@@ -69,6 +78,18 @@ testSerializer(){
         test("serializes custom fields", (){
           var json = new CustomFieldsSerializer().serialize(person, object: true);
           var expected = {"transformed" : "TRANSFORMED Bill"};
+          expect(json, equals(expected));
+        });
+
+        test("wraps the result into the root tag", (){
+          var json = new SerializerWithRoot().serialize(person, object: true);
+          var expected = {"person" : {"firstName" : "Bill"}};
+          expect(json, equals(expected));
+        });
+
+        test("runs post processing hook", (){
+          var json = new SerializerWithPostProcessing().serialize(person, object: true);
+          var expected = {"postProcessing" : true};
           expect(json, equals(expected));
         });
 
@@ -118,6 +139,14 @@ testSerializer(){
         test("throws an exception when invalid field", (){
           var future = new SelectedFieldsSerializer(["invalid"]).serializeAsync(person, object: true);
           future.catchError(expectAsync1((error){}));
+        });
+
+        test("runs post processing hook", (){
+          var future = new SerializerWithPostProcessing().serializeAsync(person, object: true);
+          future.then(expectAsync1((json){
+            var expected = {"postProcessing" : true};
+            expect(json, equals(expected));
+          }));
         });
       });
     });
