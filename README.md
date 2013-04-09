@@ -71,7 +71,7 @@ A serializer can be configured using the following properties: `fields`, `root`,
       get fields => ["firstName"];
 
       get custom => {
-        "customField" => (Person p) => p.lastName.toUpperCase();
+        "customField" : (Person p) => p.lastName.toUpperCase();
       };
 
       get root => "person";
@@ -87,4 +87,4 @@ A serializer can be configured using the following properties: `fields`, `root`,
 
 Returns:
 
-    {"person" => {"firstName" : "Bill", "customField" : "EVANS", "reversedFullName" : "Evans Bill"}}
+    {"person" : {"firstName" : "Bill", "customField" : "EVANS", "reversedFullName" : "Evans Bill"}}
