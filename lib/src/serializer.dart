@@ -23,7 +23,7 @@ abstract class Serializer<T> {
     if(object == true){
       return new _AsyncSerializer(m, this).serialize();
     } else {
-      return new Future.of(() => new _MapSerializer(m, this).serialize());
+      return new Future.sync(() => new _MapSerializer(m, this).serialize());
     }
   }
 }
@@ -42,14 +42,16 @@ abstract class _BaseSerializer {
 
   _BaseSerializer(this.model, this.serializer);
 
-  readFromModel(field);
+  readFromModel(String field);
 
-  readFromSerializer(field);
+  readFromSerializer(String field);
 
-  serializerOverrides(field) =>
+  serialize();
+
+  serializerOverrides(String field) =>
     serializer.custom.containsKey(field);
 
-  postProcessing(Map res){
+  Map postProcessing(Map res){
     var withRoot = {};
     if(serializer.root != null){
       withRoot[serializer.root] = res;
@@ -59,22 +61,11 @@ abstract class _BaseSerializer {
     return serializer.postProcessing(withRoot, model);
   }
 
-  serialize(){
-    var res = fields.reduce({}, (Map res, String field) {
-      if(serializerOverrides(field)){
-        res[field] = readFromSerializer(field);
-      } else {
-        res[field] = readFromModel(field);
-      }
-      return res;
-    });
-    return postProcessing(res);
-  }
-
-  List get fields {
+  List<String> get fields {
     if(serializer.fields.isEmpty && serializer.custom.isEmpty){
       ClassMirror cm = reflect(model).type;
-      return cm.variables.keys.toList()..addAll(cm.getters.keys);
+      var variables = cm.variables.values.toList()..addAll(cm.getters.values);
+      return variables.map((_) => MirrorSystem.getName(_.simpleName)).toList();
     } else {
       return serializer.custom.keys.toList()..addAll(serializer.fields);
     }
@@ -84,11 +75,24 @@ abstract class _BaseSerializer {
 class _SyncSerializer extends _BaseSerializer {
   _SyncSerializer(model, serializer) : super(model, serializer);
 
-  readFromSerializer(field) => serializer.custom[field](model);
+  serialize(){
+    var res = fields.fold({}, (Map res, String field) {
+      if (serializerOverrides(field)) {
+        res[field] = readFromSerializer(field);
+      } else {
+        res[field] = readFromModel(field);
+      }
+      return res;
+    });
+    return postProcessing(res);
+  }
 
-  readFromModel(field) {
-    var value = deprecatedFutureValue(reflect(model).getField(field));
-    if (value is AsyncError) {
+  readFromSerializer(String field) => serializer.custom[field](model);
+
+  readFromModel(String field) {
+    var value = deprecatedFutureValue(reflect(model).getFieldAsync(new Symbol(field)));
+
+    if (value is MirroredCompilationError) {
       throw new SerializerConfigurationError(model, field);
     }
     return value.reflectee;
@@ -100,7 +104,7 @@ class _AsyncSerializer extends _BaseSerializer {
 
   serialize() =>
     Future.wait(pairs()).then((pairs){
-      var res = pairs.reduce({}, (res, p){
+      var res = pairs.fold({}, (res, p){
         res[p[0]] = p[1];
         return res;
       });
@@ -108,14 +112,14 @@ class _AsyncSerializer extends _BaseSerializer {
     });
 
   pairs() =>
-    fields.map((field) => serializerOverrides(field) ? readFromSerializer(field) : readFromModel(field));
+    fields.map((_) => serializerOverrides(_) ? readFromSerializer(_) : readFromModel(_));
 
-  readFromSerializer(field) =>
-    new Future.immediate([field, serializer.custom[field](model)]);
+  readFromSerializer(String field) =>
+    new Future.value([field, serializer.custom[field](model)]);
 
-  readFromModel(field) =>
+  readFromModel(String field) =>
     reflect(model).
-      getField(field).
+      getFieldAsync(new Symbol(field)).
       then((v) => [field, v.reflectee]).
       catchError((e){throw new SerializerConfigurationError(model, field);});
 }
@@ -123,7 +127,19 @@ class _AsyncSerializer extends _BaseSerializer {
 class _MapSerializer extends _BaseSerializer {
   _MapSerializer(model, serializer) : super(model, serializer);
 
-  readFromSerializer(field) => serializer.custom[field](model);
+  serialize(){
+    var res = fields.fold({}, (Map res, String field) {
+      if (serializerOverrides(field)) {
+        res[field] = readFromSerializer(field);
+      } else {
+        res[field] = readFromModel(field);
+      }
+      return res;
+    });
+    return postProcessing(res);
+  }
 
-  readFromModel(field) => model[field];
+  readFromSerializer(String field) => serializer.custom[field](model);
+
+  readFromModel(String field) => model[field];
 }
