@@ -1,5 +1,5 @@
 name: serializers
-version: 0.1.3
+version: 0.1.5
 description: Serializers is a Dart library for serializing objects into maps.
 author: Victor Savkin <vic.savkin@gmail.com>
 homepage: https://github.com/vsavkin/serializers
