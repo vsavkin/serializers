@@ -42,26 +42,11 @@ Where data is equal to:
     {"firstName" : "Bill", "lastName" : "Evans", "fullName" : "Bill Evans"};
 
 
-### Sync and Async
+### Mirrors and Map
 
-The `serializeAsync` function returns a future of the serialized data.
+By default a serializer uses reflection mirrors. If the model implements the `[]` operator, you can use it instead of mirrors. To do that pass `map:true`.
 
-    Future<Map> data = new PersonSerializer().serializeAsync(person, object: true);
-
-The `serialize` function returns the data.
-
-    Map data = new PersonSerializer().serialize(person, object: true);
-
-
-### Object and Map
-
-`object: true` tells the serializer to use reflection mirrors. If the model implements the `[]` operator, you can use `map:true` instead.
-
-    Future<Map> data = new PersonSerializer().serializeAsync(person, map: true);
     Map data = new PersonSerializer().serialize(person, map: true);
-
-In this case reflection mirrors won't be used.
-
 
 ### Configuration
 
