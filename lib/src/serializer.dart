@@ -11,60 +11,51 @@ abstract class Serializer<T> {
     return serialized;
   }
 
-  Map serialize(T m, {bool object, bool map}){
-    if(object == true){
-      return new _SyncSerializer(m, this).serialize();
-    } else {
-      return new _MapSerializer(m, this).serialize();
-    }
-  }
-
-  Future<Map> serializeAsync(T m, {bool object, bool map}){
-    if(object == true){
-      return new _AsyncSerializer(m, this).serialize();
-    } else {
-      return new Future.sync(() => new _MapSerializer(m, this).serialize());
-    }
+  Map serialize(T m, {bool map: false}){
+    var propertyReader = (map == true) ? _mapBasedPropertyReader : _mirrorBasedPropertyReader;
+    return new _Serializer(m, this, propertyReader).serialize();
   }
 }
 
-class SerializerConfigurationError implements Exception {
-  var model, fieldName;
-
-  SerializerConfigurationError(this.model, this.fieldName);
-
-  String toString() => "SerializerConfigurationError :: Cannot serialize '${fieldName}' of '${model}'";
-}
-
-abstract class _BaseSerializer {
-  var model;
+class _Serializer {
+  var model, propertyReader;
   Serializer serializer;
 
-  _BaseSerializer(this.model, this.serializer);
+  _Serializer(this.model, this.serializer, this.propertyReader);
 
-  readFromModel(String field);
+  readFromSerializer(String field) => serializer.custom[field](model);
 
-  readFromSerializer(String field);
-
-  serialize();
+  serialize(){
+    var res = fields.fold({}, (Map memo, String field) {
+      if (serializerOverrides(field)) {
+        memo[field] = readFromSerializer(field);
+      } else {
+        memo[field] = this.propertyReader(this.model, field);
+      }
+      return memo;
+    });
+    return postProcessing(res);
+  }
 
   serializerOverrides(String field) =>
     serializer.custom.containsKey(field);
 
   Map postProcessing(Map res){
     var withRoot = {};
+
     if(serializer.root != null){
       withRoot[serializer.root] = res;
     } else {
       withRoot = res;
     }
+
     return serializer.postProcessing(withRoot, model);
   }
 
   List<String> get fields {
     if(serializer.fields.isEmpty && serializer.custom.isEmpty){
       ClassMirror cm = reflect(model).type;
-      var variables = cm.variables.values.toList()..addAll(cm.getters.values);
+      var variables = cm.variables.values.toList()..addAll(cm.getters.values.toList());
       return variables.map((_) => MirrorSystem.getName(_.simpleName)).toList();
     } else {
       return serializer.custom.keys.toList()..addAll(serializer.fields);
@@ -72,74 +63,6 @@ abstract class _BaseSerializer {
   }
 }
 
-class _SyncSerializer extends _BaseSerializer {
-  _SyncSerializer(model, serializer) : super(model, serializer);
+_mirrorBasedPropertyReader(model, String field ) => reflect(model).getField(new Symbol(field)).reflectee;
 
-  serialize(){
-    var res = fields.fold({}, (Map res, String field) {
-      if (serializerOverrides(field)) {
-        res[field] = readFromSerializer(field);
-      } else {
-        res[field] = readFromModel(field);
-      }
-      return res;
-    });
-    return postProcessing(res);
-  }
-
-  readFromSerializer(String field) => serializer.custom[field](model);
-
-  readFromModel(String field) {
-    var value = deprecatedFutureValue(reflect(model).getFieldAsync(new Symbol(field)));
-
-    if (value is MirroredCompilationError) {
-      throw new SerializerConfigurationError(model, field);
-    }
-    return value.reflectee;
-  }
-}
-
-class _AsyncSerializer extends _BaseSerializer {
-  _AsyncSerializer(model, serializer) : super(model, serializer);
-
-  serialize() =>
-    Future.wait(pairs()).then((pairs){
-      var res = pairs.fold({}, (res, p){
-        res[p[0]] = p[1];
-        return res;
-      });
-      return postProcessing(res);
-    });
-
-  pairs() =>
-    fields.map((_) => serializerOverrides(_) ? readFromSerializer(_) : readFromModel(_));
-
-  readFromSerializer(String field) =>
-    new Future.value([field, serializer.custom[field](model)]);
-
-  readFromModel(String field) =>
-    reflect(model).
-      getFieldAsync(new Symbol(field)).
-      then((v) => [field, v.reflectee]).
-      catchError((e){throw new SerializerConfigurationError(model, field);});
-}
-
-class _MapSerializer extends _BaseSerializer {
-  _MapSerializer(model, serializer) : super(model, serializer);
-
-  serialize(){
-    var res = fields.fold({}, (Map res, String field) {
-      if (serializerOverrides(field)) {
-        res[field] = readFromSerializer(field);
-      } else {
-        res[field] = readFromModel(field);
-      }
-      return res;
-    });
-    return postProcessing(res);
-  }
-
-  readFromSerializer(String field) => serializer.custom[field](model);
-
-  readFromModel(String field) => model[field];
-}
+_mapBasedPropertyReader(model, String field ) => model[field];
